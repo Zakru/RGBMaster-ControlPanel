@@ -18,48 +18,18 @@ namespace RGBController
     /// </summary>
     public partial class App : Application
     {
-
-        public static HttpListener httpListener;
         public static SerialPort serialPort;
 
-        private static App app;
-        private static List<string> previousPorts = new List<string>();
+        public static bool closing = false;
 
-        private static float[] hues = new float[240];
+        private static App app;
+        private static readonly List<string> previousPorts = new List<string>();
+
+        private static readonly RendererStack renderers = new RendererStack();
 
         [STAThread]
         public static void Main()
         {
-            for (int i = 0; i < 240; i++)
-            {
-                float h = i * 6f / 240;
-                if (h < 1)
-                {
-                    hues[i] = 255;
-                }
-                else if (h < 2)
-                {
-                    hues[i] = 255 * (2 - h);
-                }
-                else if (h < 4)
-                {
-                    hues[i] = 0;
-                }
-                else if (h < 5)
-                {
-                    hues[i] = 255 * (h - 4);
-                }
-                else
-                {
-                    hues[i] = 255;
-                }
-                Console.WriteLine(hues[i]);
-            }
-
-            httpListener = new HttpListener();
-            httpListener.Prefixes.Add("http://localhost:8081/");
-            httpListener.Start();
-            HttpListenerLoop();
             serialPort = new SerialPort();
             //serialPort.PortName = "";
             serialPort.BaudRate = 57600;
@@ -73,13 +43,25 @@ namespace RGBController
             app.Run();
         }
 
+        public static void Cleanup()
+        {
+            closing = true;
+            serialPort.Close();
+            foreach (RGBRenderer r in renderers)
+            {
+                r.Cleanup();
+            }
+        }
+
         private static Task PortListenerLoop()
         {
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 while (app == null);
                 while (true)
                 {
+                    if (closing) return;
+
                     string[] portNames = SerialPort.GetPortNames();
 
                     if (portNames.Length != previousPorts.Count) UpdatePorts();
@@ -95,7 +77,7 @@ namespace RGBController
                         }
                     }
 
-                    Thread.Sleep(100);
+                    await Task.Delay(100);
                 }
             });
         }
@@ -111,48 +93,22 @@ namespace RGBController
                 foreach (string port in ports) ((MainWindow)app.MainWindow).portSelectorItems.Add(port);
             });
         }
-
-        private static async void HttpListenerLoop()
-        {
-            while (httpListener.IsListening)
-            {
-                try
-                {
-                    HttpListenerContext context = await httpListener.GetContextAsync();
-                    if (context.Request.HttpMethod == "POST")
-                    {
-                        context.Response.StatusCode = 200;
-                    }
-                    else
-                    {
-                        context.Response.StatusCode = 400;
-                    }
-                    context.Response.Close();
-                }
-                catch
-                {
-
-                }
-            }
-        }
         
         private static Task SendPixelsLoop()
         {
             return Task.Run(() =>
             {
-                int i = 0;
+                while (!serialPort.IsOpen);
+                renderers.Add(new CounterStrikeRenderer(60));
+                renderers.Add(new HueRenderer(60));
                 byte[] bytes = new byte[181];
+                byte[] pixelBuffer = new byte[180];
                 while (true)
                 {
-                    i = (i + 1) % 240;
+                    if (closing) return;
+                    renderers.RenderFirstOnto(pixelBuffer);
+                    for (int i = 0; i < pixelBuffer.Length; i++) bytes[i + 1] = pixelBuffer[i];
                     while (!serialPort.IsOpen);
-                    for(int j=0;j<181;j++)
-                    {
-                        if (j == 0) bytes[j] = 0;
-                        else if (j < 61) bytes[j] = (byte)hues[(240 + (j-1) * 4 - i) % 240];
-                        else if (j < 121) bytes[j] = (byte)hues[(240 + (j-61) * 4 - i + 80) % 240];
-                        else bytes[j] = (byte)hues[(240 + (j - 121) * 4 - i + 160) % 240];
-                    }
                     serialPort.Write(bytes, 0, 181);
                 }
             });

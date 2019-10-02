@@ -37,26 +37,29 @@ namespace RGBController
             portSelector.ItemsSource = portSelectorItems;
             framerateSelector.ItemsSource = framerateSelectorItems;
 
-            Task.Run(() =>
+            /*Task.Run(async () =>
             {
                 while (true)
                 {
+                    if (App.closing) return;
+
                     Dispatcher.Invoke(() =>
                     {
-                        while (App.serialPort.IsOpen == beginButton.IsEnabled) ;
-
-                        beginButton.IsEnabled = !App.serialPort.IsOpen;
-                        framerateSelector.IsEnabled = !App.serialPort.IsOpen;
-                        portSelector.IsEnabled = !App.serialPort.IsOpen;
-                        pixelCountBox.IsEnabled = !App.serialPort.IsOpen;
+                        if (App.serialPort.IsOpen != beginButton.IsEnabled)
+                        {
+                            beginButton.IsEnabled = !App.serialPort.IsOpen;
+                            framerateSelector.IsEnabled = !App.serialPort.IsOpen;
+                            portSelector.IsEnabled = !App.serialPort.IsOpen;
+                            pixelCountBox.IsEnabled = !App.serialPort.IsOpen;
+                        }
                     });
                 }
-            });
+            });*/
         }
 
         private void MainWindow_Closed(object sender, EventArgs e)
         {
-            App.httpListener.Close();
+            App.Cleanup();
         }
 
         private void portSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -77,8 +80,15 @@ namespace RGBController
 
         private void pixelCountBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string text = pixelCountBox.Text;
-            int pixels = text.Equals("") ? 0 : int.Parse(text);
+            int pixels;
+            try
+            {
+                pixels = int.Parse(pixelCountBox.Text);
+            }
+            catch
+            {
+                pixels = 0;
+            }
             int bitsToSend = (3 * pixels + 1) * 8;
             framerateSelectorItems.Clear();
             foreach (int rate in bitrates)
