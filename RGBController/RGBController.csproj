@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{4E805201-261F-447B-B967-118A10EDB45D}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>RBGController</RootNamespace>
-    <AssemblyName>RBGController</AssemblyName>
+    <RootNamespace>RGBController</RootNamespace>
+    <AssemblyName>RGBController</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -35,12 +35,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>RBGController.App</StartupObject>
+    <StartupObject>RGBController.App</StartupObject>
   </PropertyGroup>
   <PropertyGroup />
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Management" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />

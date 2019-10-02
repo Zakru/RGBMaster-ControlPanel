@@ -1,9 +1,9 @@
-﻿<Window x:Class="RBGController.MainWindow"
+﻿<Window x:Class="RGBController.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:RBGController"
+        xmlns:local="clr-namespace:RGBController"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid Margin="10">
@@ -11,7 +11,8 @@
         <Label Content="Pixel Count:" HorizontalAlignment="Left" Margin="125,0,0,0" VerticalAlignment="Top" Height="22" Padding="0" VerticalContentAlignment="Center"/>
         <TextBox x:Name="pixelCountBox" HorizontalAlignment="Left" Margin="192,0,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" PreviewTextInput="pixelCountBox_PreviewTextInput" Height="22" TextChanged="pixelCountBox_TextChanged"/>
         <Label Content="Framerate:" HorizontalAlignment="Left" Margin="257,0,0,0" VerticalAlignment="Top" Height="22" Padding="0" VerticalContentAlignment="Center"/>
-        <ComboBox x:Name="framerateSelector" HorizontalAlignment="Left" VerticalAlignment="Top" SelectionChanged="portSelector_SelectionChanged" Height="22" Margin="318,0,0,0"/>
+        <ComboBox x:Name="framerateSelector" HorizontalAlignment="Left" SelectionChanged="framerateSelector_SelectionChanged" Margin="318,0,0,0" Height="22" VerticalAlignment="Top" Width="65"/>
+        <Button x:Name="beginButton" Content="Begin" HorizontalAlignment="Left" Margin="388,0,0,0" VerticalAlignment="Top" Width="75" Height="22" Click="beginButton_Click"/>
 
     </Grid>
 </Window>

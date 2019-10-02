@@ -8,8 +8,10 @@ using System.Windows;
 using System.Net;
 using System.IO.Ports;
 using System.Threading;
+using System.Management;
+using System.Text;
 
-namespace RBGController
+namespace RGBController
 {
     /// <summary>
     /// Interaction logic for App.xaml
@@ -23,24 +25,48 @@ namespace RBGController
         private static App app;
         private static List<string> previousPorts = new List<string>();
 
+        private static float[] hues = new float[240];
+
         [STAThread]
         public static void Main()
         {
+            for (int i = 0; i < 240; i++)
+            {
+                float h = i * 6f / 240;
+                if (h < 1)
+                {
+                    hues[i] = 255;
+                }
+                else if (h < 2)
+                {
+                    hues[i] = 255 * (2 - h);
+                }
+                else if (h < 4)
+                {
+                    hues[i] = 0;
+                }
+                else if (h < 5)
+                {
+                    hues[i] = 255 * (h - 4);
+                }
+                else
+                {
+                    hues[i] = 255;
+                }
+                Console.WriteLine(hues[i]);
+            }
+
             httpListener = new HttpListener();
             httpListener.Prefixes.Add("http://localhost:8081/");
             httpListener.Start();
             HttpListenerLoop();
-
-            Console.WriteLine("asd");
-            foreach (string port in SerialPort.GetPortNames())
-            {
-                Console.WriteLine(port);
-            }
             serialPort = new SerialPort();
             //serialPort.PortName = "";
             serialPort.BaudRate = 57600;
 
             PortListenerLoop();
+
+            SendPixelsLoop();
 
             app = new App();
             app.InitializeComponent();
@@ -51,6 +77,7 @@ namespace RBGController
         {
             return Task.Run(() =>
             {
+                while (app == null);
                 while (true)
                 {
                     string[] portNames = SerialPort.GetPortNames();
@@ -78,8 +105,11 @@ namespace RBGController
             string[] ports = SerialPort.GetPortNames();
             previousPorts.Clear();
             previousPorts.AddRange(ports);
-            ((MainWindow)app.MainWindow).portSelectorItems.Clear();
-            foreach (string port in ports) ((MainWindow)app.MainWindow).portSelectorItems.Add(port);
+
+            app.Dispatcher.Invoke(() => {
+                ((MainWindow)app.MainWindow).portSelectorItems.Clear();
+                foreach (string port in ports) ((MainWindow)app.MainWindow).portSelectorItems.Add(port);
+            });
         }
 
         private static async void HttpListenerLoop()
@@ -104,6 +134,28 @@ namespace RBGController
 
                 }
             }
+        }
+        
+        private static Task SendPixelsLoop()
+        {
+            return Task.Run(() =>
+            {
+                int i = 0;
+                byte[] bytes = new byte[181];
+                while (true)
+                {
+                    i = (i + 1) % 240;
+                    while (!serialPort.IsOpen);
+                    for(int j=0;j<181;j++)
+                    {
+                        if (j == 0) bytes[j] = 0;
+                        else if (j < 61) bytes[j] = (byte)hues[(240 + (j-1) * 4 - i) % 240];
+                        else if (j < 121) bytes[j] = (byte)hues[(240 + (j-61) * 4 - i + 80) % 240];
+                        else bytes[j] = (byte)hues[(240 + (j - 121) * 4 - i + 160) % 240];
+                    }
+                    serialPort.Write(bytes, 0, 181);
+                }
+            });
         }
     }
 }

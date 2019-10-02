@@ -15,7 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace RBGController
+namespace RGBController
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -25,17 +25,33 @@ namespace RBGController
         public ObservableCollection<string> portSelectorItems = new ObservableCollection<string>();
 
         private readonly int[] bitrates = {
-            300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200
+            300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200, 250000
         };
 
-        public ObservableCollection<string> framerateSelectorItems = new ObservableCollection<string>();
+        public ObservableCollection<ComboBoxItem> framerateSelectorItems = new ObservableCollection<ComboBoxItem>();
 
         public MainWindow()
         {
             InitializeComponent();
             Closed += MainWindow_Closed;
-            ((ComboBox)FindName("portSelector")).ItemsSource = portSelectorItems;
-            ((ComboBox)FindName("framerateSelector")).ItemsSource = framerateSelectorItems;
+            portSelector.ItemsSource = portSelectorItems;
+            framerateSelector.ItemsSource = framerateSelectorItems;
+
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        while (App.serialPort.IsOpen == beginButton.IsEnabled) ;
+
+                        beginButton.IsEnabled = !App.serialPort.IsOpen;
+                        framerateSelector.IsEnabled = !App.serialPort.IsOpen;
+                        portSelector.IsEnabled = !App.serialPort.IsOpen;
+                        pixelCountBox.IsEnabled = !App.serialPort.IsOpen;
+                    });
+                }
+            });
         }
 
         private void MainWindow_Closed(object sender, EventArgs e)
@@ -45,7 +61,7 @@ namespace RBGController
 
         private void portSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            App.serialPort.PortName = (string)e.AddedItems[0];
+            if (e.AddedItems.Count > 0) App.serialPort.PortName = (string)e.AddedItems[0];
         }
 
         private void pixelCountBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -61,14 +77,27 @@ namespace RBGController
 
         private void pixelCountBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string text = ((TextBox)sender).Text;
+            string text = pixelCountBox.Text;
             int pixels = text.Equals("") ? 0 : int.Parse(text);
-            int bytesToSend = 3 * pixels + 1;
+            int bitsToSend = (3 * pixels + 1) * 8;
             framerateSelectorItems.Clear();
             foreach (int rate in bitrates)
             {
-                framerateSelectorItems.Add(((float)rate / bytesToSend).ToString("N2"));
+                ComboBoxItem item = new ComboBoxItem();
+                item.Content = ((float)rate / bitsToSend).ToString("N2");
+                item.Tag = rate;
+                framerateSelectorItems.Add(item);
             }
+        }
+
+        private void framerateSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0) App.serialPort.BaudRate = (int)((ComboBoxItem)e.AddedItems[0]).Tag;
+        }
+
+        private void beginButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.serialPort.Open();
         }
     }
 }
